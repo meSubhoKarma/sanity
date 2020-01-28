@@ -37,7 +37,8 @@ interface CommitAction {
 type Action = MutationAction | CommitAction
 
 interface CommitRequest {
-  mutation: MutationPayload
+  mutation: Mutation
+  transactionId: string
   onSuccess: () => void
   onError: (error: Error) => void
 }

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import {useDocumentOperation, useValidationStatus} from '@sanity/react-hooks'
+import TimeAgo from '../components/TimeAgo'
 
 const DISABLED_REASON_TITLE = {
   LIVE_EDIT_ENABLED: 'Cannot publish since liveEdit is enabled for this document type',
@@ -7,8 +8,19 @@ const DISABLED_REASON_TITLE = {
   NO_CHANGES: 'No unpublished changes'
 }
 
+function getDisabledReason(reason, published, showCheck) {
+  if (published && reason === 'ALREADY_PUBLISHED') {
+    return (
+      <>
+        {showCheck && ' ✓ '} Published <TimeAgo time={published._updatedAt} />
+      </>
+    )
+  }
+  return DISABLED_REASON_TITLE[reason]
+}
+
 export function PublishAction(props) {
-  const {id, type, liveEdit, onComplete} = props
+  const {id, type, liveEdit} = props
 
   if (liveEdit) {
     return {
@@ -19,63 +31,39 @@ export function PublishAction(props) {
     }
   }
 
+  const [publishStatus, setPublishStatus] = React.useState<'publishing' | 'published' | null>(null)
+
   const {publish, patch}: any = useDocumentOperation(id, type)
-  const [publishing, setPublishing] = React.useState(false)
-  const [didPublish, setDidPublish] = React.useState(false)
-  const [error, setError] = React.useState<Error | null>(null)
-
   const validationStatus = useValidationStatus(id, type)
-
-  if (publishing) {
-    return {disabled: true, label: 'Publishing…'}
-  }
-
-  if (didPublish) {
-    return {
-      disabled: true,
-      label: 'Published!',
-      dialog: {
-        type: 'success',
-        onClose: onComplete,
-        title: 'Succesfully published document'
-      }
-    }
-  }
 
   const hasValidationErrors = validationStatus.markers.length > 0
 
   const title = publish.disabled
-    ? DISABLED_REASON_TITLE[publish.disabled] || ''
+    ? getDisabledReason(publish.disabled, props.published, publishStatus === 'published') || ''
     : hasValidationErrors
     ? 'There are validation errors that needs to be fixed before this document can be published'
     : ''
 
-  const disabled = Boolean(
-    validationStatus.isValidating || hasValidationErrors || publishing || publish.disabled
-  )
+  React.useEffect(() => {
+    const nextStatus = publishStatus === 'publishing' ? 'published' : null
+    const delay = nextStatus === 'published' ? 100 : 5000
+    const timer = setTimeout(() => {
+      setPublishStatus(nextStatus)
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [publishStatus])
+
+  const disabled = Boolean(validationStatus.isValidating || hasValidationErrors || publish.disabled)
 
   return {
     disabled,
     label: 'Publish',
-    title: title,
-    shortcut: disabled ? null : 'ctrl+alt+p',
+    title: publishStatus === 'publishing' ? null : title,
+    shortcut: disabled ? null : 'Ctrl+Alt+P',
     onHandle: () => {
-      setPublishing(true)
-      setDidPublish(false)
+      setPublishStatus('publishing')
       patch.execute([{set: {publishedAt: new Date().toISOString()}}])
-      publish.execute().then(
-        () => {
-          setPublishing(false)
-          setDidPublish(true)
-        },
-        err => setError(err)
-      )
-    },
-    dialog: error && {
-      type: 'error',
-      onClose: () => setError(null),
-      title: 'An error occured when publishing the document',
-      content: error.message
+      publish.execute()
     }
   }
 }

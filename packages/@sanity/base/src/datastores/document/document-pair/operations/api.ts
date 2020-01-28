@@ -1,60 +1,45 @@
 import * as operations from './index'
 import {OperationArgs} from '../../types'
+import {emitOperation} from '../emitOperation'
+
+export {operations}
 
 /* Ok, this became a bit messy - sorry
  *  The important thing to consider here is the PublicOperations interface -
  *  as long as this is properly typed, how everything else is implemented doesn't matter
  *  */
 
-type GenericFn = (...args: any[]) => any
-interface GuardedOperation<ExecuteFn> {
+interface GuardedOperation {
   disabled: 'NOT_READY'
   execute: () => never
 }
-type ExtraParameters<T extends (first: any, ...args: any) => any> = T extends (
-  ...args: infer P
-) => any
-  ? P
-  : never
 
-type WrappedOperation<ExecuteFn extends GenericFn, ErrorStrings> = {
+type WrappedOperation<ErrorStrings> = {
   disabled: false | ErrorStrings
-  execute: (...args: ExtraParameters<ExecuteFn>[]) => ReturnType<ExecuteFn>
+  execute: () => void
 }
 
-type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any
-
-type OperationImpl<ExecuteFn extends GenericFn, ErrorStrings> = {
+export type OperationImpl<ErrorStrings> = {
   disabled: (args: OperationArgs) => false | ErrorStrings
-  execute(args: OperationArgs, ...extraArgs: Parameters<ExecuteFn>[] | any[]): ReturnType<ExecuteFn>
+  execute(args: OperationArgs, ...extra: any[]): void
 }
 
-type Operation<ExecuteFn extends GenericFn, DisabledReasons = false> =
-  | GuardedOperation<ExecuteFn>
-  | WrappedOperation<ExecuteFn, DisabledReasons>
-
-type Prepare<T, K = any> = (doc: T) => K
+type Operation<DisabledReasons = false> = GuardedOperation | WrappedOperation<DisabledReasons>
 
 // Note: Changing this interface in a backwards incompatible manner will be a breaking change
 export interface PublicOperations {
-  commit: Operation<() => Promise<void>>
-  delete: Operation<() => Promise<void>, 'NOTHING_TO_DELETE'>
-  del: Operation<() => Promise<void>, 'NOTHING_TO_DELETE'>
-  publish: Operation<
-    (prepare?: Prepare<any>) => Promise<void>,
-    'LIVE_EDIT_ENABLED' | 'ALREADY_PUBLISHED' | 'NO_CHANGES'
-  >
+  commit: Operation
+  delete: Operation<'NOTHING_TO_DELETE'>
+  del: Operation<'NOTHING_TO_DELETE'>
+  publish: Operation<'LIVE_EDIT_ENABLED' | 'ALREADY_PUBLISHED' | 'NO_CHANGES'>
   patch: Operation<(patches: any[]) => void>
-  discardChanges: Operation<() => Promise<void>, 'NO_CHANGES' | 'NOT_PUBLISHED'>
-  unpublish: Operation<() => Promise<void>, 'NOT_PUBLISHED'>
-  duplicate: Operation<(prepare?: Prepare<any>) => Promise<string>, 'NOTHING_TO_DUPLICATE'>
+  discardChanges: Operation<'NO_CHANGES' | 'NOT_PUBLISHED'>
+  unpublish: Operation<'NOT_PUBLISHED'>
+  duplicate: Operation<'NOTHING_TO_DUPLICATE'>
   restore: Operation<(revision: string) => Promise<void>>
 }
 
-function createOperationGuard<ExecuteFn extends GenericFn, ErrorStrings, ReturnValue>(
-  opName: string,
-  op: OperationImpl<ExecuteFn, ErrorStrings>
-): GuardedOperation<ExecuteFn> {
+function createOperationGuard(opName: string): GuardedOperation {
   return {
     disabled: 'NOT_READY',
     execute: () => {
@@ -67,27 +52,40 @@ function createOperationGuard<ExecuteFn extends GenericFn, ErrorStrings, ReturnV
 // Most operations depend on having the "current document state" available locally and if an action gets called
 // before we have the state available, we throw an error to signal "premature" invocation before ready
 export const GUARDED: PublicOperations = {
-  commit: createOperationGuard('commit', operations.commit),
-  delete: createOperationGuard('delete', operations.delete),
-  del: createOperationGuard('del', operations.delete),
-  publish: createOperationGuard('publish', operations.publish),
-  patch: createOperationGuard('patch', operations.patch),
-  discardChanges: createOperationGuard('discardChanges', operations.discardChanges),
-  unpublish: createOperationGuard('unpublish', operations.unpublish),
-  duplicate: createOperationGuard('duplicate', operations.duplicate),
-  restore: createOperationGuard('restore', operations.restore)
+  commit: createOperationGuard('commit'),
+  delete: createOperationGuard('delete'),
+  del: createOperationGuard('del'),
+  publish: createOperationGuard('publish'),
+  patch: createOperationGuard('patch'),
+  discardChanges: createOperationGuard('discardChanges'),
+  unpublish: createOperationGuard('unpublish'),
+  duplicate: createOperationGuard('duplicate'),
+  restore: createOperationGuard('restore')
+}
+const createEmitter = (operationName: keyof PublicOperations) => (...args: any[]) =>
+  emitOperation(operationName, args)
+
+export const emitters = {
+  commit: createEmitter('commit'),
+  delete: createEmitter('delete'),
+  del: createEmitter('delete'),
+  publish: createEmitter('publish'),
+  patch: createEmitter('patch'),
+  discardChanges: createEmitter('discardChanges'),
+  unpublish: createEmitter('unpublish'),
+  duplicate: createEmitter('duplicate'),
+  restore: createEmitter('restore')
 }
 
-function wrap<ExecuteFn extends GenericFn, ErrorStrings>(
+function wrap<ErrorStrings>(
   opName: keyof PublicOperations,
-  op: OperationImpl<ExecuteFn, ErrorStrings>,
+  op: OperationImpl<ErrorStrings>,
   operationArgs: OperationArgs
-): WrappedOperation<ExecuteFn, ErrorStrings> {
+): WrappedOperation<ErrorStrings> {
   const disabled = op.disabled(operationArgs)
   return {
     disabled,
-    execute: (...extraArgs: Parameters<ExecuteFn>[]): ReturnType<ExecuteFn> =>
-      op.execute(operationArgs, ...extraArgs)
+    execute: emitters[opName]
   }
 }
 

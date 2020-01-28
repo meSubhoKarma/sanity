@@ -1,5 +1,4 @@
 import {OperationArgs} from '../../types'
-import {returnVoid} from '../../utils/returnVoid'
 
 export const discardChanges = {
   disabled: ({snapshots}: OperationArgs) => {
@@ -11,11 +10,8 @@ export const discardChanges = {
     }
     return false
   },
-  execute: ({draft}: OperationArgs): Promise<void> => {
+  execute: ({draft}: OperationArgs) => {
     draft.delete()
-    return draft
-      .commit()
-      .toPromise()
-      .then(returnVoid)
+    return draft.commit()
   }
 }

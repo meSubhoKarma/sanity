@@ -30,11 +30,8 @@ export function getPairListener(client: SanityClient, idPair: IdPair) {
   return defer(
     () =>
       client.observable.listen(
-        `*[_id == $publishedId || _id == $draftId]`,
-        {
-          publishedId,
-          draftId
-        },
+        `*`,
+        {__DEBUG__: true},
         {includeResult: false, events: ['welcome', 'mutation', 'reconnect']}
       ) as Observable<WelcomeEvent | MutationEvent | ReconnectEvent>
   ).pipe(

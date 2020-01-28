@@ -36,7 +36,7 @@ export function DeleteAction({id, type, draft, published, onComplete}) {
           onConfirm={async () => {
             setIsDeleting(true)
             setConfirmDialogOpen(false)
-            await deleteOp.execute()
+            deleteOp.execute()
             onComplete()
           }}
         />
