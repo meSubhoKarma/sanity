@@ -1,6 +1,19 @@
-export {PublishAction} from './actions/PublishAction'
-export {DiscardChangesAction} from './actions/DiscardChangesAction'
-export {UnpublishAction} from './actions/UnpublishAction'
-export {DuplicateAction} from './actions/DuplicateAction'
-export {DeleteAction} from './actions/DeleteAction'
-// debug only: export {SaveAction} from './actions/SaveAction'
+import {PublishAction} from './actions/PublishAction'
+import {DiscardChangesAction} from './actions/DiscardChangesAction'
+import {UnpublishAction} from './actions/UnpublishAction'
+import {DuplicateAction} from './actions/DuplicateAction'
+import {DeleteAction} from './actions/DeleteAction'
+
+export {PublishAction}
+export {DiscardChangesAction}
+export {UnpublishAction}
+export {DuplicateAction}
+export {DeleteAction}
+
+export const defaultActions = [
+  PublishAction,
+  DiscardChangesAction,
+  UnpublishAction,
+  DuplicateAction,
+  DeleteAction
+]

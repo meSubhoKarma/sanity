@@ -2,8 +2,12 @@ import * as React from 'react'
 import DocumentPane from './DocumentPane'
 import withInitialValue from '../utils/withInitialValue'
 import {throttle} from 'lodash'
-import {useConnectionState, useDocumentOperation, useEditState} from '@sanity/react-hooks'
-import {useValidationStatus} from '@sanity/react-hooks'
+import {
+  useConnectionState,
+  useDocumentOperation,
+  useEditState,
+  useValidationStatus
+} from '@sanity/react-hooks'
 
 interface Props {
   title?: string

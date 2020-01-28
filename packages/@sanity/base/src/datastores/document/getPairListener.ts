@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import {defer, of as observableOf, Observable} from 'rxjs'
+import {defer, Observable, of as observableOf} from 'rxjs'
 import {concatMap, map} from 'rxjs/operators'
 import {
   IdPair,
@@ -53,7 +53,12 @@ export function getPairListener(client: SanityClient, idPair: IdPair) {
   function fetchInitialDocumentSnapshots({publishedId, draftId}): Observable<Snapshots> {
     return (client.observable.getDocuments([draftId, publishedId]) as Observable<
       [SanityDocument, SanityDocument]
-    >).pipe(map(([draft, published]) => ({draft, published})))
+    >).pipe(
+      map(([draft, published]) => ({
+        draft,
+        published
+      }))
+    )
   }
 }
 

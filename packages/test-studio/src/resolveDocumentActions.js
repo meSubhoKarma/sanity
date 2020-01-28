@@ -1,5 +1,4 @@
-import {useDocumentOperation} from '@sanity/react-hooks'
-import * as DefaultActions from 'part:@sanity/base/document-actions'
+import {defaultActions} from 'part:@sanity/base/document-actions'
 import {
   ConfirmDialogAction,
   ModalDialogAction,
@@ -13,28 +12,9 @@ function TestAction() {
   }
 }
 
-function PublishNowAction({type, id, onComplete}) {
-  const {publish, patch} = useDocumentOperation(id, type)
-  return {
-    label: 'Publish now',
-    onHandle: () => {
-      patch.execute([
-        {
-          set: {
-            publishedAt: new Date().toISOString()
-          }
-        }
-      ])
-      publish.execute()
-      onComplete()
-    }
-  }
-}
-
 export default function resolveDocumentActions(editState, type) {
   return [
-    ...Object.values(DefaultActions),
-    PublishNowAction,
+    ...defaultActions,
     TestAction,
     PopoverDialogAction,
     ModalDialogAction,
