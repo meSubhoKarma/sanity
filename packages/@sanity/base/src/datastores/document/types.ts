@@ -1,6 +1,8 @@
 import {MutationPayload} from './buffered-doc/types'
 import {DocumentVersionSnapshots} from './document-pair/snapshotPair'
 
+export {MutationPayload as Mutation}
+
 export interface SanityDocument {
   _id: string
   _rev?: string

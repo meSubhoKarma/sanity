@@ -1,8 +1,8 @@
 import {getPairListener, ListenerEvent} from '../getPairListener'
 import {BufferedDocumentEvent, createBufferedDocument} from '../buffered-doc/createBufferedDocument'
-import {share, filter, map} from 'rxjs/operators'
-import {IdPair} from '../types'
-import {Observable, merge} from 'rxjs'
+import {filter, map, share} from 'rxjs/operators'
+import {IdPair, Mutation} from '../types'
+import {merge, Observable} from 'rxjs'
 import client from 'part:@sanity/base/client'
 
 const isEventForDocId = (id: string) => (event: ListenerEvent): boolean =>
@@ -16,13 +16,17 @@ export function doCommit(client, mutations) {
 }
 
 export type DocumentVersionEvent = BufferedDocumentEvent & {version: 'published' | 'draft'}
+
 export interface DocumentVersion {
   events: Observable<DocumentVersionEvent>
-  patch: (patches) => void
-  create: (document) => void
-  createIfNotExists: (document) => void
-  createOrReplace: (document) => void
-  delete: () => void
+
+  patch: (patches) => Mutation
+  create: (document) => Mutation
+  createIfNotExists: (document) => Mutation
+  createOrReplace: (document) => Mutation
+  delete: () => Mutation
+
+  mutate: (mutations: Mutation[]) => void
   commit: () => Observable<never>
 }
 

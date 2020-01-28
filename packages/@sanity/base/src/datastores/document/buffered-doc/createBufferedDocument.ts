@@ -8,6 +8,7 @@ import {
   SnapshotEvent
 } from './types'
 import {ListenerEvent} from '../getPairListener'
+import {Mutation} from '../types'
 
 export type BufferedDocumentEvent =
   | SnapshotEvent
@@ -15,13 +16,21 @@ export type BufferedDocumentEvent =
   | DocumentMutationEvent
   | CommittedEvent
 
+const prepare = id => document => {
+  const {_id, _rev, _updatedAt, ...rest} = document
+  return {_id: id, ...rest}
+}
+
 export interface BufferedDocumentWrapper {
   events: Observable<BufferedDocumentEvent>
-  patch: (patches) => void
-  create: (document) => void
-  createIfNotExists: (document) => void
-  createOrReplace: (document) => void
-  delete: () => void
+  // helper functions
+  patch: (patches) => Mutation
+  create: (document) => Mutation
+  createIfNotExists: (document) => Mutation
+  createOrReplace: (document) => Mutation
+  delete: () => Mutation
+
+  mutate: (mutations: Mutation[]) => void
   commit: () => Observable<never>
 }
 
@@ -33,27 +42,19 @@ export const createBufferedDocument = (
 ): BufferedDocumentWrapper => {
   const bufferedDocument = createObservableBufferedDocument(listenerEvent$, doCommit)
 
+  const prepareDoc = prepare(documentId)
+
+  const DELETE = {delete: {id: documentId}}
+
   return {
     events: bufferedDocument.updates$,
-    patch(patches) {
-      bufferedDocument.addMutations(patches.map(patch => ({patch: {...patch, id: documentId}})))
-    },
-    create(document) {
-      bufferedDocument.addMutation({
-        create: document
-      })
-    },
-    createIfNotExists(document) {
-      bufferedDocument.addMutation({createIfNotExists: document})
-    },
-    createOrReplace(document) {
-      bufferedDocument.addMutation({createOrReplace: document})
-    },
-    delete() {
-      bufferedDocument.addMutation({delete: {id: documentId}})
-    },
-    commit() {
-      return bufferedDocument.commit()
-    }
+    patch: patches => patches.map(patch => ({patch: {...patch, id: documentId}})),
+    create: document => ({create: prepareDoc(document)}),
+    createIfNotExists: document => ({createIfNotExists: prepareDoc(document)}),
+    createOrReplace: document => ({createOrReplace: prepareDoc(document)}),
+    delete: () => DELETE,
+
+    mutate: (mutations: Mutation[]) => bufferedDocument.addMutations(mutations),
+    commit: () => bufferedDocument.commit()
   }
 }

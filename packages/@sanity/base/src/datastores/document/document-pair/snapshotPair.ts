@@ -1,4 +1,4 @@
-import {IdPair, SanityDocument} from '../types'
+import {IdPair, SanityDocument, Mutation} from '../types'
 import {filter, map, publishReplay, refCount} from 'rxjs/operators'
 import {cachedPair} from './cachedPair'
 import {BufferedDocumentEvent} from '../buffered-doc/createBufferedDocument'
@@ -24,22 +24,28 @@ function withSnapshots(pair: DocumentVersion): DocumentVersionSnapshots {
       publishReplay(1),
       refCount()
     ),
+
     patch: pair.patch,
     create: pair.create,
     createIfNotExists: pair.createIfNotExists,
     createOrReplace: pair.createOrReplace,
     delete: pair.delete,
+
+    mutate: pair.mutate,
     commit: pair.commit
   }
 }
-
 export interface DocumentVersionSnapshots {
   snapshots$: Observable<SanityDocument>
-  patch: (patches) => void
-  create: (document) => void
-  createIfNotExists: (document) => void
-  createOrReplace: (document) => void
-  delete: () => void
+
+  // helper functions
+  patch: (patches) => Mutation[]
+  create: (document) => Mutation
+  createIfNotExists: (document) => Mutation
+  createOrReplace: (document) => Mutation
+  delete: () => Mutation
+
+  mutate: (mutations: Mutation[]) => void
   commit: () => Observable<never>
 }
 
