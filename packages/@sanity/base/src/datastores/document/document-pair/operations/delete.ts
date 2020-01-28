@@ -9,6 +9,6 @@ export const del = {
       draft.mutate([draft.delete()])
     }
     published.mutate([published.delete()])
-    return merge(draft.commit(), published.commit())
+    return merge(draft.commit(), published.commit()).toPromise()
   }
 }

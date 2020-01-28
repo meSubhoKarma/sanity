@@ -43,6 +43,6 @@ export const publish = {
 
     draft.mutate([draft.delete()])
 
-    return merge(draft.commit(), published.commit())
+    return merge(draft.commit(), published.commit()).toPromise()
   }
 }

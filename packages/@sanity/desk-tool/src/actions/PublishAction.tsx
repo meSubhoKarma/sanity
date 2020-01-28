@@ -19,7 +19,7 @@ export function PublishAction(props) {
     }
   }
 
-  const {publish}: any = useDocumentOperation(id, type)
+  const {publish, patch}: any = useDocumentOperation(id, type)
   const [publishing, setPublishing] = React.useState(false)
   const [didPublish, setDidPublish] = React.useState(false)
   const [error, setError] = React.useState<Error | null>(null)
@@ -62,6 +62,7 @@ export function PublishAction(props) {
     onHandle: () => {
       setPublishing(true)
       setDidPublish(false)
+      patch.execute([{set: {publishedAt: new Date().toISOString()}}])
       publish.execute().then(
         () => {
           setPublishing(false)
