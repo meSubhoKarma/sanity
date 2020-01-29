@@ -11,7 +11,7 @@ export const discardChanges = {
     return false
   },
   execute: ({draft}: OperationArgs) => {
-    draft.delete()
+    draft.mutate([draft.delete()])
     return draft.commit()
   }
 }

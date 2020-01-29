@@ -1,10 +1,7 @@
 import {OperationArgs} from '../../types'
 
-import {omit} from 'lodash'
 import {isLiveEditEnabled} from '../utils/isLiveEditEnabled'
 import {merge} from 'rxjs'
-
-const id = <T>(id: T): T => id
 
 export const publish = {
   disabled: ({typeName, snapshots}: OperationArgs) => {

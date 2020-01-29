@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import {defer, Observable, of as observableOf} from 'rxjs'
+import {defer, of as observableOf, Observable} from 'rxjs'
 import {concatMap, map} from 'rxjs/operators'
 import {
   IdPair,
@@ -30,8 +30,11 @@ export function getPairListener(client: SanityClient, idPair: IdPair) {
   return defer(
     () =>
       client.observable.listen(
-        `*`,
-        {__DEBUG__: true},
+        `*[_id == $publishedId || _id == $draftId]`,
+        {
+          publishedId,
+          draftId
+        },
         {includeResult: false, events: ['welcome', 'mutation', 'reconnect']}
       ) as Observable<WelcomeEvent | MutationEvent | ReconnectEvent>
   ).pipe(

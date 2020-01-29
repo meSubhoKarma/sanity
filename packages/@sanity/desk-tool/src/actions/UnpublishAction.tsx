@@ -50,7 +50,7 @@ export function UnpublishAction({id, type, draft, published, onComplete, liveEdi
             }}
             onConfirm={async () => {
               setConfirmDialogOpen(false)
-              await unpublish.execute()
+              unpublish.execute()
               onComplete()
             }}
           />
