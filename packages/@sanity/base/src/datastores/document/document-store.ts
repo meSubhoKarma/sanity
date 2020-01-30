@@ -8,6 +8,7 @@ import {editStateOf} from './document-pair/editState'
 import {editOpsOf} from './document-pair/editOps'
 import {documentEventsFor} from './document-pair/documentEvents'
 import {validationFor} from './document-pair/validation'
+import {operationEvents$} from './document-pair/executeOperation'
 
 function getIdPairFromPublished(publishedId: string): IdPair {
   if (isDraftId(publishedId)) {
@@ -16,7 +17,6 @@ function getIdPairFromPublished(publishedId: string): IdPair {
 
   return {publishedId, draftId: getDraftId(publishedId)}
 }
-// Todo: Flush / commit before publish
 
 export default {
   ...createDeprecatedAPIs(client), // Todo: can be removed in ~january 2020
@@ -26,9 +26,12 @@ export default {
   local: {
     editStateOf: (publishedId: string, type) =>
       editStateOf(getIdPairFromPublished(publishedId), type),
+
     editOpsOf: (publishedId: string, type) => editOpsOf(getIdPairFromPublished(publishedId), type),
+
     documentEventsFor: (publishedId: string) =>
       documentEventsFor(getIdPairFromPublished(publishedId)),
-    validationFor: (publishedId: string, typeName: string) => validationFor(publishedId, typeName)
+    validationFor: (publishedId: string, typeName: string) => validationFor(publishedId, typeName),
+    operationEvents$
   }
 }

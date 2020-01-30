@@ -64,7 +64,7 @@ export function UnpublishAction({id, type, draft, published, onComplete, liveEdi
     icon: CloseIcon,
     disabled: Boolean(unpublish.disabled),
     label: 'Unpublish',
-    title: unpublish.disabled && DISABLED_REASON_TITLE[unpublish.disabled],
+    title: unpublish.disabled ? DISABLED_REASON_TITLE[unpublish.disabled] : '',
     onHandle: () => {
       setConfirmDialogOpen(true)
     },

@@ -1,6 +1,6 @@
 import * as operations from './index'
 import {OperationArgs} from '../../types'
-import {emitOperation} from '../emitOperation'
+import {executeOperation} from '../executeOperation'
 
 export {operations}
 
@@ -62,8 +62,10 @@ export const GUARDED: PublicOperations = {
   duplicate: createOperationGuard('duplicate'),
   restore: createOperationGuard('restore')
 }
-const createEmitter = (operationName: keyof PublicOperations) => (...args: any[]) =>
-  emitOperation(operationName, args)
+const createEmitter = (operationName: keyof PublicOperations) => (
+  operationArgs,
+  ...extraArgs: any[]
+) => executeOperation(operationName, operationArgs, extraArgs)
 
 export const emitters = {
   commit: createEmitter('commit'),
@@ -85,7 +87,7 @@ function wrap<ErrorStrings>(
   const disabled = op.disabled(operationArgs)
   return {
     disabled,
-    execute: emitters[opName]
+    execute: (...extraArgs) => executeOperation(opName, operationArgs, extraArgs).toPromise()
   }
 }
 
