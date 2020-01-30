@@ -20,7 +20,6 @@ export default function DocumentStatusBar(props: Props) {
         <div className={styles.statusDetails}>
           <button
             className={styles.lastUpdatedButton}
-            disabled={!props.lastUpdated}
             onClick={props.onLastUpdatedButtonClick}
             type="button"
           >
