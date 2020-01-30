@@ -20,7 +20,7 @@ export type DocumentVersionEvent = BufferedDocumentEvent & {version: 'published'
 export interface DocumentVersion {
   events: Observable<DocumentVersionEvent>
 
-  patch: (patches) => Mutation
+  patch: (patches) => Mutation[]
   create: (document) => Mutation
   createIfNotExists: (document) => Mutation
   createOrReplace: (document) => Mutation

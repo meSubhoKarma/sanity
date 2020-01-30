@@ -2,8 +2,8 @@ import * as React from 'react'
 import Snackbar from 'part:@sanity/components/snackbar/default'
 import {useDocumentOperationEvent} from '@sanity/react-hooks'
 
-export function DocumentOperationResults(props) {
-  const event = useDocumentOperationEvent(props.id, props.type)
+export function DocumentOperationResults(props: {id: string; type: string}) {
+  const event: any = useDocumentOperationEvent(props.id, props.type)
 
   if (event && event.op === 'delete') {
     return (

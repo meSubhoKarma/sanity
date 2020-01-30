@@ -37,8 +37,7 @@ interface CommitAction {
 type Action = MutationAction | CommitAction
 
 interface CommitRequest {
-  mutation: Mutation
-  transactionId: string
+  mutation: Mutation['params']
   onSuccess: () => void
   onError: (error: Error) => void
 }
@@ -112,7 +111,11 @@ export const createObservableBufferedDocument = (
       rebase$.next({type: 'rebase', document: edge})
     }
 
-    bufferedDocument.commitHandler = opts => {
+    bufferedDocument.commitHandler = (opts: {
+      success: () => {}
+      failure: () => {}
+      mutation: Mutation
+    }) => {
       const {resultRev, ...mutation} = opts.mutation.params
       commits$.next({onSuccess: opts.success, onError: opts.failure, mutation})
     }

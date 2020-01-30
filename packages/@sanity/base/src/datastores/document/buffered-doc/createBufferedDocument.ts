@@ -24,7 +24,7 @@ const prepare = id => document => {
 export interface BufferedDocumentWrapper {
   events: Observable<BufferedDocumentEvent>
   // helper functions
-  patch: (patches) => Mutation
+  patch: (patches) => Mutation[]
   create: (document) => Mutation
   createIfNotExists: (document) => Mutation
   createOrReplace: (document) => Mutation
