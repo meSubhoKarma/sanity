@@ -55,6 +55,9 @@ SanityFormBuilderContext.createPatchChannel = () => {
   const patchChannel = FormBuilderContext.createPatchChannel()
   return {
     receiveEvent: event => {
+      if (event.type === 'rebase') {
+        return
+      }
       if (event.type !== 'mutation' && event.type !== 'rebase') {
         return
       }

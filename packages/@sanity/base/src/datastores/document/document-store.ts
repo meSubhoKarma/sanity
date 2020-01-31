@@ -8,7 +8,7 @@ import {editStateOf} from './document-pair/editState'
 import {editOpsOf} from './document-pair/editOps'
 import {documentEventsFor} from './document-pair/documentEvents'
 import {validationFor} from './document-pair/validation'
-import {operationEvents$} from './document-pair/executeOperation'
+import {operationExecutions} from './document-pair/operationExecutions'
 
 function getIdPairFromPublished(publishedId: string): IdPair {
   if (isDraftId(publishedId)) {
@@ -32,6 +32,8 @@ export default {
     documentEventsFor: (publishedId: string) =>
       documentEventsFor(getIdPairFromPublished(publishedId)),
     validationFor: (publishedId: string, typeName: string) => validationFor(publishedId, typeName),
-    operationEvents$
+
+    operationEventsFor: (publishedId, type) =>
+      operationExecutions(getIdPairFromPublished(publishedId), type)
   }
 }

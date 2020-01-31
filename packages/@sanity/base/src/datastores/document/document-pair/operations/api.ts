@@ -1,6 +1,7 @@
 import * as operations from './index'
 import {OperationArgs} from '../../types'
-import {executeOperation} from '../executeOperation'
+import {emitOperation} from '../operationExecutions'
+import {defer, of} from 'rxjs'
 
 export {operations}
 
@@ -62,22 +63,11 @@ export const GUARDED: PublicOperations = {
   duplicate: createOperationGuard('duplicate'),
   restore: createOperationGuard('restore')
 }
-const createEmitter = (operationName: keyof PublicOperations) => (
-  operationArgs,
-  ...extraArgs: any[]
-) => executeOperation(operationName, operationArgs, extraArgs)
-
-export const emitters = {
-  commit: createEmitter('commit'),
-  delete: createEmitter('delete'),
-  del: createEmitter('delete'),
-  publish: createEmitter('publish'),
-  patch: createEmitter('patch'),
-  discardChanges: createEmitter('discardChanges'),
-  unpublish: createEmitter('unpublish'),
-  duplicate: createEmitter('duplicate'),
-  restore: createEmitter('restore')
-}
+const createEmitter = (operationName: keyof PublicOperations, id) => (...extraArgs: any[]) =>
+  defer(() => {
+    emitOperation(operationName, id, extraArgs)
+    return of(null)
+  }).toPromise()
 
 function wrap<ErrorStrings>(
   opName: keyof PublicOperations,
@@ -87,7 +77,7 @@ function wrap<ErrorStrings>(
   const disabled = op.disabled(operationArgs)
   return {
     disabled,
-    execute: (...extraArgs) => executeOperation(opName, operationArgs, extraArgs).toPromise()
+    execute: createEmitter(opName, operationArgs.idPair.publishedId)
   }
 }
 

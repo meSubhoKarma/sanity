@@ -8,11 +8,11 @@ const DISABLED_REASON_TITLE = {
   NO_CHANGES: 'No unpublished changes'
 }
 
-function getDisabledReason(reason, published, showCheck) {
-  if (published && reason === 'ALREADY_PUBLISHED') {
+function getDisabledReason(reason, publishedAt) {
+  if (reason === 'ALREADY_PUBLISHED' && publishedAt) {
     return (
       <>
-        {showCheck && ' ✓ '} Published <TimeAgo time={published._updatedAt} />
+        Published <TimeAgo time={publishedAt} />
       </>
     )
   }
@@ -39,29 +39,30 @@ export function PublishAction(props) {
   const hasValidationErrors = validationStatus.markers.length > 0
 
   const title = publish.disabled
-    ? getDisabledReason(publish.disabled, props.published, publishStatus === 'published') || ''
+    ? getDisabledReason(publish.disabled, (props.published || {})._updatedAt) || ''
     : hasValidationErrors
     ? 'There are validation errors that needs to be fixed before this document can be published'
     : ''
 
   React.useEffect(() => {
-    const nextStatus = publishStatus === 'publishing' ? 'published' : null
-    const delay = nextStatus === 'published' ? 100 : 5000
+    const delay = 4000
     const timer = setTimeout(() => {
-      setPublishStatus(nextStatus)
+      setPublishStatus(null)
     }, delay)
     return () => clearTimeout(timer)
   }, [publishStatus])
 
   const disabled = Boolean(validationStatus.isValidating || hasValidationErrors || publish.disabled)
 
+  const didPublish = !props.draft && publishStatus === 'published'
   return {
     disabled,
-    label: 'Publish',
-    title: publishStatus === 'publishing' ? null : title,
+    label: didPublish ? 'Published' : 'Publish',
+    icon: didPublish ? () => '✓ ' : null,
+    title: didPublish ? null : title,
     shortcut: disabled ? null : 'Ctrl+Alt+P',
     onHandle: () => {
-      setPublishStatus('publishing')
+      setPublishStatus('published')
       patch.execute([{set: {publishedAt: new Date().toISOString()}}])
       publish.execute()
     }
