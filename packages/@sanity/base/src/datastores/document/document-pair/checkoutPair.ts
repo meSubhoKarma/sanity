@@ -8,8 +8,8 @@ import client from 'part:@sanity/base/client'
 const isEventForDocId = (id: string) => (event: ListenerEvent): boolean =>
   event.type !== 'reconnect' && event.documentId === id
 
-export function doCommit(client, mutations) {
-  return client.observable.dataRequest('mutate', mutations, {
+function commitMutations(mutations) {
+  return client.dataRequest('mutate', mutations, {
     visibility: 'async',
     returnDocuments: false
   })
@@ -47,18 +47,16 @@ export function checkoutPair(idPair: IdPair): Pair {
 
   const reconnect$ = listenerEvents$.pipe(filter(ev => ev.type === 'reconnect'))
 
-  const _doCommit = mutations => doCommit(client, mutations)
-
   const draft = createBufferedDocument(
     draftId,
     listenerEvents$.pipe(filter(isEventForDocId(draftId))),
-    _doCommit
+    commitMutations
   )
 
   const published = createBufferedDocument(
     publishedId,
     listenerEvents$.pipe(filter(isEventForDocId(publishedId))),
-    _doCommit
+    commitMutations
   )
 
   return {

@@ -58,17 +58,11 @@ const getUpdatedSnapshot = (bufferedDocument: BufferedDocument) => {
 const toSnapshotEvent = (document): SnapshotEvent => ({type: 'snapshot', document})
 const getDocument = <T extends {document: any}>(event: T): T['document'] => event.document
 
-const DEBUG = false
-const noop = () => noop
-const log = DEBUG
-  ? (prefix, inspect?) => v => console.log(prefix, typeof inspect === 'function' ? inspect(v) : v)
-  : noop
-
 // This is an observable interface for BufferedDocument in an attempt
 // to make it easier to work with the api provided by it
 export const createObservableBufferedDocument = (
   listenerEvent$: Observable<ListenerEvent>,
-  doCommit: CommitFunction
+  commitMutations: CommitFunction
 ) => {
   // Incoming local actions (e.g. a request to mutate, a request to commit pending changes, etc.)
   const actions$ = new Subject<Action>()
@@ -113,18 +107,16 @@ export const createObservableBufferedDocument = (
       mutation: Mutation
     }) => {
       const {resultRev, ...mutation} = opts.mutation.params
-      doCommit(mutation)
-        .toPromise()
-        .then(opts.success, error => {
-          const isBadRequest =
-            error.name === 'ClientError' && error.statusCode >= 400 && error.statusCode <= 500
-          if (isBadRequest) {
-            opts.cancel(error)
-          } else {
-            opts.failure()
-          }
-          return Promise.reject(error)
-        })
+      commitMutations(mutation).then(opts.success, error => {
+        const isBadRequest =
+          error.name === 'ClientError' && error.statusCode >= 400 && error.statusCode <= 500
+        if (isBadRequest) {
+          opts.cancel(error)
+        } else {
+          opts.failure()
+        }
+        return Promise.reject(error)
+      })
     }
     return bufferedDocument
   }
@@ -157,7 +149,7 @@ export const createObservableBufferedDocument = (
 
   // this is a stream of document snapshots where each new snapshot are emitted after listener mutations
   // has been applied. Since the optimistic patches is not emitted on the mutation$ stream, we need this
-  // in order to update the document with a new _revision (and _updatedAt)
+  // in order to update the document with a new _rev (and _updatedAt)
   const snapshotAfterSync$ = listenerEvent$.pipe(
     filter((ev): ev is MutationEvent => ev.type === 'mutation'),
     withLatestFrom(currentBufferedDocument$),
@@ -198,13 +190,10 @@ export const createObservableBufferedDocument = (
 
   // A stream of this document's snapshot
   const snapshot$ = merge(
-    currentBufferedDocument$.pipe(
-      map(bufferedDocument => bufferedDocument.LOCAL),
-      tap(log('from current buffered'))
-    ),
-    mutations$.pipe(map(getDocument), tap(log('from mutations'))),
-    snapshotAfterSync$.pipe(tap(log('after sync mutations'))),
-    rebase$.pipe(map(getDocument)).pipe(tap(log('after rebase')))
+    currentBufferedDocument$.pipe(map(bufferedDocument => bufferedDocument.LOCAL)),
+    mutations$.pipe(map(getDocument)),
+    rebase$.pipe(map(getDocument)),
+    snapshotAfterSync$
   ).pipe(map(toSnapshotEvent), publishReplay(1), refCount())
 
   return {

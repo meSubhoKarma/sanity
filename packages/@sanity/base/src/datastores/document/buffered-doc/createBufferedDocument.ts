@@ -39,9 +39,9 @@ export const createBufferedDocument = (
   documentId: string,
   // consider naming it remoteEvent$
   listenerEvent$: Observable<ListenerEvent>,
-  doCommit: CommitFunction
+  commitMutations: CommitFunction
 ): BufferedDocumentWrapper => {
-  const bufferedDocument = createObservableBufferedDocument(listenerEvent$, doCommit)
+  const bufferedDocument = createObservableBufferedDocument(listenerEvent$, commitMutations)
 
   const prepareDoc = prepare(documentId)
 

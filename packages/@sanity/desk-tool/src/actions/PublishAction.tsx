@@ -33,7 +33,7 @@ export function PublishAction(props) {
 
   const [publishStatus, setPublishStatus] = React.useState<'publishing' | 'published' | null>(null)
 
-  const {publish, patch}: any = useDocumentOperation(id, type)
+  const {publish}: any = useDocumentOperation(id, type)
   const validationStatus = useValidationStatus(id, type)
 
   const hasValidationErrors = validationStatus.markers.length > 0
@@ -62,9 +62,8 @@ export function PublishAction(props) {
     title: didPublish ? null : title,
     shortcut: disabled ? null : 'Ctrl+Alt+P',
     onHandle: () => {
-      setPublishStatus('published')
-      patch.execute([{set: {publishedAt: new Date().toISOString()}}])
       publish.execute()
+      setPublishStatus('published')
     }
   }
 }

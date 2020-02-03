@@ -1,7 +1,6 @@
 import * as operations from './index'
 import {OperationArgs} from '../../types'
 import {emitOperation} from '../operationExecutions'
-import {defer, of} from 'rxjs'
 
 export {operations}
 
@@ -64,10 +63,7 @@ export const GUARDED: PublicOperations = {
   restore: createOperationGuard('restore')
 }
 const createEmitter = (operationName: keyof PublicOperations, id) => (...extraArgs: any[]) =>
-  defer(() => {
-    emitOperation(operationName, id, extraArgs)
-    return of(null)
-  }).toPromise()
+  emitOperation(operationName, id, extraArgs)
 
 function wrap<ErrorStrings>(
   opName: keyof PublicOperations,
