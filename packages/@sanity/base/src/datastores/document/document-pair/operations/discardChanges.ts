@@ -1,4 +1,5 @@
 import {OperationArgs} from '../../types'
+import client from 'part:@sanity/base/client'
 
 export const discardChanges = {
   disabled: ({snapshots}: OperationArgs) => {
@@ -10,8 +11,10 @@ export const discardChanges = {
     }
     return false
   },
-  execute: ({draft}: OperationArgs) => {
-    draft.mutate([draft.delete()])
-    return draft.commit()
+  execute: ({idPair}: OperationArgs) => {
+    return client.observable
+      .transaction()
+      .delete(idPair.draftId)
+      .commit()
   }
 }

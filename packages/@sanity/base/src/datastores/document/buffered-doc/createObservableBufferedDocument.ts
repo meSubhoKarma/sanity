@@ -1,22 +1,21 @@
 import {BufferedDocument, Mutation} from '@sanity/mutator'
-import {defer, EMPTY, merge, Observable, Subject} from 'rxjs'
+import {BehaviorSubject, EMPTY, merge, Observable, Subject} from 'rxjs'
 import {
-  concatMap,
   distinctUntilChanged,
   filter,
   map,
-  mapTo,
+  mergeMap,
   mergeMapTo,
   publishReplay,
   refCount,
   scan,
   share,
+  take,
   tap,
   withLatestFrom
 } from 'rxjs/operators'
 import {
   CommitFunction,
-  CommittedEvent,
   DocumentMutationEvent,
   DocumentRebaseEvent,
   MutationPayload,
@@ -35,14 +34,6 @@ interface CommitAction {
 }
 
 type Action = MutationAction | CommitAction
-
-interface CommitRequest {
-  mutation: Mutation['params']
-  onSuccess: () => void
-  onError: (error: Error) => void
-}
-
-const COMMITTED_EVENT: CommittedEvent = {type: 'committed'}
 
 // BufferedDocument.LOCAL never updates its revision due to its internal consistency checks
 // but we sometimes we need the most current _rev on the document in UI land, e.g.
@@ -83,7 +74,7 @@ export const createObservableBufferedDocument = (
   const actions$ = new Subject<Action>()
 
   // Stream of commit requests. Must be handled by a commit handler
-  const commits$ = new Subject<CommitRequest>()
+  const consistency$ = new BehaviorSubject<boolean>(true)
 
   // Stream of mutations for this document
   // NOTE: this will *not* include remote mutations received over the listener
@@ -111,13 +102,29 @@ export const createObservableBufferedDocument = (
       rebase$.next({type: 'rebase', document: edge})
     }
 
+    bufferedDocument.onConsistencyChanged = isConsistent => {
+      consistency$.next(isConsistent)
+    }
+
     bufferedDocument.commitHandler = (opts: {
       success: () => {}
       failure: () => {}
+      cancel: (error) => {}
       mutation: Mutation
     }) => {
       const {resultRev, ...mutation} = opts.mutation.params
-      commits$.next({onSuccess: opts.success, onError: opts.failure, mutation})
+      doCommit(mutation)
+        .toPromise()
+        .then(opts.success, error => {
+          const isBadRequest =
+            error.name === 'ClientError' && error.statusCode >= 400 && error.statusCode <= 500
+          if (isBadRequest) {
+            opts.cancel(error)
+          } else {
+            opts.failure()
+          }
+          return Promise.reject(error)
+        })
     }
     return bufferedDocument
   }
@@ -181,11 +188,13 @@ export const createObservableBufferedDocument = (
   const addMutations = (mutations: MutationPayload[]) => emitAction({type: 'mutation', mutations})
   const addMutation = (mutation: MutationPayload) => addMutations([mutation])
 
-  const commit = () =>
-    defer(() => {
-      emitAction({type: 'commit'})
-      return EMPTY
-    })
+  const commit = () => {
+    return currentBufferedDocument$.pipe(
+      take(1),
+      mergeMap(bufferedDocument => bufferedDocument.commit()),
+      mergeMapTo(EMPTY)
+    )
+  }
 
   // A stream of this document's snapshot
   const snapshot$ = merge(
@@ -198,21 +207,9 @@ export const createObservableBufferedDocument = (
     rebase$.pipe(map(getDocument)).pipe(tap(log('after rebase')))
   ).pipe(map(toSnapshotEvent), publishReplay(1), refCount())
 
-  const commitResults$ = commits$.pipe(
-    concatMap(commitReq =>
-      doCommit(commitReq.mutation).pipe(
-        tap({
-          next: commitReq.onSuccess,
-          error: commitReq.onError
-        })
-      )
-    ),
-    mapTo(COMMITTED_EVENT),
-    share()
-  )
-
   return {
-    updates$: merge(snapshot$, actionHandler$, mutations$, rebase$, commitResults$),
+    updates$: merge(snapshot$, actionHandler$, mutations$, rebase$),
+    consistency$: consistency$.pipe(distinctUntilChanged(), publishReplay(1), refCount()),
     addMutation,
     addMutations,
     commit

@@ -1,19 +1,21 @@
 import {OperationArgs} from '../../types'
-import {merge} from 'rxjs'
+import client from 'part:@sanity/base/client'
+import {omit} from 'lodash'
 
 export const unpublish = {
   disabled: ({snapshots}: OperationArgs) => {
     return snapshots.published ? false : 'NOT_PUBLISHED'
   },
-  execute: ({snapshots, published, draft}: OperationArgs) => {
+  execute: ({idPair, snapshots}: OperationArgs) => {
+    let tx = client.observable.transaction().delete(idPair.publishedId)
+
     if (snapshots.published) {
-      draft.mutate([
-        draft.createIfNotExists({
-          ...snapshots.published
-        })
-      ])
+      tx = tx.createIfNotExists({
+        ...omit(snapshots.published, '_updatedAt'),
+        _id: idPair.draftId
+      })
     }
-    published.mutate([published.delete()])
-    return merge(draft.commit(), published.commit())
+
+    return tx.commit()
   }
 }

@@ -18,6 +18,7 @@ export function doCommit(client, mutations) {
 export type DocumentVersionEvent = BufferedDocumentEvent & {version: 'published' | 'draft'}
 
 export interface DocumentVersion {
+  consistency$: Observable<boolean>
   events: Observable<DocumentVersionEvent>
 
   patch: (patches) => Mutation[]
@@ -63,11 +64,13 @@ export function checkoutPair(idPair: IdPair): Pair {
   return {
     draft: {
       ...draft,
-      events: merge(reconnect$, draft.events).pipe(map(setVersion('draft')))
+      events: merge(reconnect$, draft.events).pipe(map(setVersion('draft'))),
+      consistency$: draft.consistency$
     },
     published: {
       ...published,
-      events: merge(reconnect$, published.events).pipe(map(setVersion('published')))
+      events: merge(reconnect$, published.events).pipe(map(setVersion('published'))),
+      consistency$: published.consistency$
     }
   }
 }

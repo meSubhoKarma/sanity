@@ -1,9 +1,19 @@
 import {defer, merge, Observable, of, Subject} from 'rxjs'
 import {operations, PublicOperations} from './operations/api'
 import {IdPair} from '../types'
-import {filter, last, map, mergeMap, withLatestFrom} from 'rxjs/operators'
+import {
+  catchError,
+  filter,
+  last,
+  map,
+  mergeMap,
+  switchMap,
+  take,
+  withLatestFrom
+} from 'rxjs/operators'
 import {operationArgs} from './operationArgs'
 import {createObservableCache} from '../utils/createObservableCache'
+import {consistencyStatus} from './consistencyStatus'
 
 interface ExecuteArgs {
   operationName: keyof PublicOperations
@@ -34,17 +44,34 @@ export function emitOperation(
 
 const cacheOn = createObservableCache<any>()
 
+const REQUIRES_CONSISTENCY = ['publish', 'unpublish', 'discardChanges', 'delete']
+
 export function operationExecutions(idPair: IdPair, typeName: string) {
+  const consistency$ = consistencyStatus(idPair)
   return emissions$.pipe(
     filter(emission => emission.publishedId === idPair.publishedId),
-    withLatestFrom(operationArgs(idPair, typeName)),
-    mergeMap(([emission, operationArgs]) => {
-      return execute(emission.operationName, operationArgs, emission.extraArgs).pipe(
+    withLatestFrom(operationArgs(idPair, typeName), consistency$),
+    switchMap(([emission, operationArgs, isConsistent]) => {
+      const ready$ =
+        REQUIRES_CONSISTENCY.includes(emission.operationName) && !isConsistent
+          ? merge(
+              operationArgs.published.commit(),
+              operationArgs.draft.commit(),
+              consistency$.pipe(
+                filter(isConsistent => isConsistent),
+                take(1)
+              )
+            )
+          : of(null)
+
+      return ready$.pipe(
+        mergeMap(() => execute(emission.operationName, operationArgs, emission.extraArgs)),
         map(() => ({
           type: 'success',
           op: emission.operationName,
           id: idPair.publishedId
-        }))
+        })),
+        catchError(err => of({type: 'error', op: emission.operationName, error: err}))
       )
     }),
     cacheOn(idPair.publishedId)

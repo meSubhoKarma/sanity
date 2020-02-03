@@ -1,14 +1,16 @@
 import {OperationArgs} from '../../types'
-import {merge} from 'rxjs'
 import {isLiveEditEnabled} from '../utils/isLiveEditEnabled'
+import client from 'part:@sanity/base/client'
 
 export const del = {
   disabled: ({snapshots}) => (snapshots.draft || snapshots.published ? false : 'NOTHING_TO_DELETE'),
-  execute: ({draft, published, typeName}: OperationArgs) => {
-    if (!isLiveEditEnabled(typeName)) {
-      draft.mutate([draft.delete()])
+  execute: ({idPair, typeName}: OperationArgs) => {
+    const tx = client.observable.transaction().delete(idPair.draftId)
+
+    if (isLiveEditEnabled(typeName)) {
+      return tx.commit()
     }
-    published.mutate([published.delete()])
-    return merge(draft.commit(), published.commit())
+
+    return tx.delete(idPair.publishedId).commit()
   }
 }

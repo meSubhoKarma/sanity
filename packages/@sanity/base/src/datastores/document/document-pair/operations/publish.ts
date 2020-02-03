@@ -1,7 +1,8 @@
 import {OperationArgs} from '../../types'
 
 import {isLiveEditEnabled} from '../utils/isLiveEditEnabled'
-import {merge} from 'rxjs'
+import client from 'part:@sanity/base/client'
+import {omit} from 'lodash'
 
 export const publish = {
   disabled: ({typeName, snapshots}: OperationArgs) => {
@@ -13,33 +14,31 @@ export const publish = {
     }
     return false
   },
-  execute: ({idPair, snapshots, draft, published}: OperationArgs) => {
-    if (snapshots.published) {
-      // If there is a published document already, we only want to update it if the revision on the remote server
-      // matches what our local state thinks it's at
-      published.mutate([
-        // Hack until other mutations support revision locking
-        ...published.patch([
-          {unset: ['_revision_lock_pseudo_field_'], ifRevisionID: snapshots.published._rev}
-        ]),
-        published.createOrReplace({
-          ...snapshots.draft,
-          _id: idPair.publishedId
-        })
-      ])
-    } else {
+  execute: ({idPair, snapshots}: OperationArgs) => {
+    const tx = client.transaction()
+
+    if (!snapshots.published) {
       // If the document has not been published, we want to create it - if it suddenly exists
       // before being created, we don't want to overwrite if, instead we want to yield an error
-      published.mutate([
-        published.create({
-          ...snapshots.draft,
-          _id: idPair.publishedId
-        })
-      ])
+      tx.create({
+        ...omit(snapshots.draft, '_updatedAt'),
+        _id: idPair.publishedId
+      })
+    } else {
+      // If it exists already, we only want to update it if the revision on the remote server
+      // matches what our local state thinks it's at
+      tx.patch(idPair.publishedId, {
+        // Hack until other mutations support revision locking
+        unset: ['_revision_lock_pseudo_field_'],
+        ifRevisionID: snapshots.published._rev
+      }).createOrReplace({
+        ...omit(snapshots.draft, '_updatedAt'),
+        _id: idPair.publishedId
+      })
     }
 
-    draft.mutate([draft.delete()])
+    tx.delete(idPair.draftId)
 
-    return merge(draft.commit(), published.commit())
+    return tx.commit()
   }
 }

@@ -22,6 +22,7 @@ const prepare = id => document => {
 }
 
 export interface BufferedDocumentWrapper {
+  consistency$: Observable<boolean>
   events: Observable<BufferedDocumentEvent>
   // helper functions
   patch: (patches) => Mutation[]
@@ -48,6 +49,7 @@ export const createBufferedDocument = (
 
   return {
     events: bufferedDocument.updates$,
+    consistency$: bufferedDocument.consistency$,
     patch: patches => patches.map(patch => ({patch: {...patch, id: documentId}})),
     create: document => ({create: prepareDoc(document)}),
     createIfNotExists: document => ({createIfNotExists: prepareDoc(document)}),

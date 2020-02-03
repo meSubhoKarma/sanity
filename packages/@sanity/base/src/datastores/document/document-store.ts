@@ -9,6 +9,7 @@ import {editOpsOf} from './document-pair/editOps'
 import {documentEventsFor} from './document-pair/documentEvents'
 import {validationFor} from './document-pair/validation'
 import {operationExecutions} from './document-pair/operationExecutions'
+import {consistencyStatus} from './document-pair/consistencyStatus'
 
 function getIdPairFromPublished(publishedId: string): IdPair {
   if (isDraftId(publishedId)) {
@@ -31,9 +32,12 @@ export default {
 
     documentEventsFor: (publishedId: string) =>
       documentEventsFor(getIdPairFromPublished(publishedId)),
+
     validationFor: (publishedId: string, typeName: string) => validationFor(publishedId, typeName),
 
     operationEventsFor: (publishedId, type) =>
-      operationExecutions(getIdPairFromPublished(publishedId), type)
+      operationExecutions(getIdPairFromPublished(publishedId), type),
+
+    consistencyStatus: publishedId => consistencyStatus(getIdPairFromPublished(publishedId))
   }
 }
