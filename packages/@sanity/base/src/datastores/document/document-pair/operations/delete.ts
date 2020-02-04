@@ -5,12 +5,12 @@ import client from 'part:@sanity/base/client'
 export const del = {
   disabled: ({snapshots}) => (snapshots.draft || snapshots.published ? false : 'NOTHING_TO_DELETE'),
   execute: ({idPair, typeName}: OperationArgs) => {
-    const tx = client.observable.transaction().delete(idPair.draftId)
+    const tx = client.observable.transaction().delete(idPair.publishedId)
 
     if (isLiveEditEnabled(typeName)) {
       return tx.commit()
     }
 
-    return tx.delete(idPair.publishedId).commit()
+    return tx.delete(idPair.draftId).commit()
   }
 }
