@@ -17,7 +17,7 @@ export function DeleteAction({id, type, draft, published, onComplete}) {
     disabled: Boolean(deleteOp.disabled),
     title: (deleteOp.disabled && DISABLED_REASON_TITLE[deleteOp.disabled]) || '',
     label: isDeleting ? 'Deleting…' : 'Delete',
-    shortcut: 'ctrl+alt+d',
+    shortcut: 'Ctrl+Alt+D',
     onHandle: () => {
       setConfirmDialogOpen(true)
     },
