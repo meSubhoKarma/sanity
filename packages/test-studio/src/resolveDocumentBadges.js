@@ -1,4 +1,4 @@
-import * as DefaultBadges from 'part:@sanity/base/document-badges'
+import defaultResolve from 'part:@sanity/base/document-badges'
 
 function CustomBadge() {
   return {
@@ -8,6 +8,6 @@ function CustomBadge() {
   }
 }
 
-export default function resolveDocumentBadges() {
-  return [...Object.values(DefaultBadges), CustomBadge]
+export default function resolveDocumentBadges(props) {
+  return [...defaultResolve(props), CustomBadge]
 }

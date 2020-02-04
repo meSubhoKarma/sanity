@@ -8,6 +8,8 @@ import {
 import {isActionEnabled} from 'part:@sanity/base/util/document-action-utils'
 import schema from 'part:@sanity/base/schema'
 
+// todo: this should be replaced with the defaultResolveDocumentActions function from ./defaultDocumentActions eventually,
+// it is kept here for now to preserve backwards compatibility with __experimental_actions
 export default function resolveDocumentActions(documentState) {
   const schemaType = schema.get(documentState.type)
   return [

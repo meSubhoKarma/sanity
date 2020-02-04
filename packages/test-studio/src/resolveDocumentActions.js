@@ -1,4 +1,5 @@
-import {defaultActions} from 'part:@sanity/base/document-actions'
+import defaultResolve from 'part:@sanity/base/document-actions'
+
 import {
   ConfirmDialogAction,
   ModalDialogAction,
@@ -12,9 +13,9 @@ function TestAction() {
   }
 }
 
-export default function resolveDocumentActions(editState, type) {
+export default function resolveDocumentActions(props) {
   return [
-    ...defaultActions,
+    ...defaultResolve(props),
     TestAction,
     PopoverDialogAction,
     ModalDialogAction,
